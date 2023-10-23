@@ -1,0 +1,20 @@
+%YAML:1.0
+---
+calibration_time: "Thu 08 Jul 2021 08:33:04 PM KST"
+image_width: 1920
+image_height: 1080
+flags: 0
+camera_matrix: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 912.162354, 0., 956.207275, 0.,
+       912.593933, 551.090088, 0., 0., 1. ]
+distortion_coefficients: !!opencv-matrix
+   rows: 1
+   cols: 8
+   dt: d
+   data: [ 0.707426, -3.224739,
+       0.000794, -0.000850,
+       1.882996,0.571517,-3.013402,1.790187 ]
+avg_reprojection_error: 0

@@ -1,0 +1,63 @@
+===================================
+ __  __     ______      ____       
+/\ \/\ \   /\__  _\    /\  _`\     
+\ \ \ \ \  \/_/\ \/    \ \ \_\ \   
+ \ \ \ \ \    \ \ \     \ \ ,  /   
+  \ \ \_/ \    \_\ \__   \ \ \\ \  
+   \ `\___/    /\_____\   \ \_\ \_\
+    `\/__/     \/_____/    \/_/\/ /
+
+                      Setup Toolkit
+===================================
+
+=============================================================================
+  Virtual Dose Monitoring for Interventional Radiology (VIR) Setup Toolkit
+                                                                         
+  Author: Sungho Moon                                                       
+  Update data: 2023.10.23
+=============================================================================
+
+< History >
+2022.08.30 - initial version
+2022.09.14 - isocenter calibration
+2022.11.02 - real-time camera calibration work start
+2023.10.23 - remake version
+
+< Procedures >
+  [Fixed camera mode]
+    1. Set the ChArUco board to be positioned vertically within kinect view.
+    2. Press 'f' key to run the 'fixed camera mode'.
+    3. Crop the board image to obtain the high-quality data.
+    4. Press 't' key to cumulate the board data.
+    5. The board data for corresponding fixed camera file 
+       '[serialNum]_fixedMode.dat' will be generated.
+
+  [Connector mode]
+    1. Set at least two ChArUco boards to be positioned within kinect view.
+    2. Crop the board image to obtain the high-quality data.
+    3. Press 't' key to cumulate the board data.
+    4. If board data for all transformation matrices are set, 'MatrixTF.dat' 
+       file will be generated.
+
+  [Calculation mode]
+    1. Use option '-cal' or press 'w' key.
+       (You should prepare 'MatrixTF.dat' and '[serialNu]_fixedMode.dat')
+    2. Transformation matrix for corresponding fixed camera file is then 
+       generated '[serialNum].dat'.
+
+< Hot Keys > 
+  [Main]
+   'f': Convert fixed camera mode - this mode computes a 6D pose on one 
+        ChArUco board the kinect is looking at.
+   't': Cumulate board data.
+   'c': Clear the board data.
+   'w': Write fixed camera transformation matrix (Calculation mode)
+   'q': Exit the program.
+
+  [Auxiliary]
+   'h': Print Usage.
+   'e': Generate point cloud data.
+   'r': Generate point cloud data based on reference coordinate 
+        (need '[serialNum].dat')
+   's': Set detecting/cumulating # (default: 5/20)
+   'a': Show average coordinate value
