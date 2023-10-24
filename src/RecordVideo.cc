@@ -471,7 +471,7 @@ void record_CAM(int& id, string& cam_name, bool& exitLoop)
 	cv::VideoCapture cap;
 	cap.open(id, cv::CAP_V4L2);
 	cap.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M','J','P','G'));
-	if (cam_name == "APC930") { // face ID
+	if (cam_name == "APC930" || cam_name == "UHD2160") { // face ID
 		cap.set(cv::CAP_PROP_FRAME_WIDTH,  1280);
 		cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
 	}
