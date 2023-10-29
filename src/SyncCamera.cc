@@ -613,3 +613,10 @@ int Batch_Write_Camera_Pose(int argc, char** argv)
 	
 	return EXIT_SUCCESS;
 }
+
+int Measure_Profile(int argc, char** argv)
+{
+
+	
+	return EXIT_SUCCESS;
+}

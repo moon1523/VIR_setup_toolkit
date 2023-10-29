@@ -122,6 +122,14 @@ static tuple<vector<int>, vector<int>, vector<string>> findCameraIndices()
             cam_ids.push_back( stoi(dump.substr(string("/dev/video").size(), dump.size())) );
 			cam_names.push_back("APC930");
         }
+        else if (dump == "UHD2160") {
+            getline(ss, line);
+            getline(ss, line);
+            stringstream ss2(line);
+            ss2 >> dump;
+            cam_ids.push_back( stoi(dump.substr(string("/dev/video").size(), dump.size())) );
+			cam_names.push_back("UHD2160");
+        }
     }
 	return make_tuple(zed_ids, cam_ids, cam_names);
 }
