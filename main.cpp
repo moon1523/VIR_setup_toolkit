@@ -35,6 +35,7 @@ void PrintUsage()
     std::cout << "  --view-coords (ply_path, default: ./sync)" << std::endl;
     std::cout << "  --write (isocenter_file, default: no calibration)" << std::endl;
     std::cout << "  --calib (output_name)" << std::endl;
+    std::cout << "  --profile" << std:: endl;
     std::cout << std::endl;
 }
 
@@ -71,6 +72,8 @@ int main(int argc, char** argv)
         Batch_Write_Camera_Pose(argc, argv);
     } else if (option == "--calib") {
         Calibrate_with_ChArUco(argc, argv);
+    } else if (option == "--profile") {
+        Measure_Profile(argc, argv);
     } else {
         std::cout << "Invalid option: " << option << std::endl;
         return EXIT_FAILURE;
