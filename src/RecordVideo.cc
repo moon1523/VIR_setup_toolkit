@@ -58,95 +58,123 @@ int Synchronize_Recording(int argc, char** argv)
 	vector<string> svo_lists = findFileList(input_path, "svo");
 	vector<string> avi_lists = findFileList(input_path, "avi");
 
+	
+
 	// Sync Time
 	struct stat st;
 	if (stat(output_path.c_str(), &st) != 0) {
-		mkdir(output_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+		mkdir(output_path.c_str(), 0777);
 	} else if (argc <= 3) {
 		system(("rm -rf " + output_path + "*").c_str());
-		mkdir(output_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+		mkdir(output_path.c_str(), 0777);
 	}	
 	vector<double> times2frames;
 	vector<string> sync_names;
-	// vector<int> record_fps;
 
 	for (int i=0; i<svo_lists.size()+avi_lists.size(); i++) {
 		string s;
 		if (i < svo_lists.size()) {
 			s = svo_lists[i];
 			sync_names.push_back(s.substr(s.find("ZED"), s.size()));
-			// record_fps.push_back(15);
 		}
 		else {
 			s = avi_lists[i-svo_lists.size()];
 			sync_names.push_back(s.substr(s.find("CAM"), s.size()));
-			// int FPS = stoi(s.substr(s.find("FPS")+4,2));
-			// record_fps.push_back(FPS);
 		}
 		cout << "Recording name: " << sync_names[i] << endl;
-		string YYMMDD = s.substr(s.find_first_of('/')+1, 8); 
-		cout << "YYMMDD: " << YYMMDD << endl;
-		string HHMMSS = s.substr(s.find_first_of('_')+1, 6); 
-		cout << "HHMMSS: " << HHMMSS << endl;
-		string MS = s.substr(s.find_first_of('_')+8, s.find_last_of('m')-(s.find_first_of('_')+8));
-		cout << "MS: " << MS << endl;
+		string YYMMDD = s.substr(s.find_first_of('/')+1, 8); cout << "YYMMDD: " << YYMMDD << endl;
+		string HHMMSS = s.substr(s.find_first_of('_')+1, 6); cout << "HHMMSS: " << HHMMSS << endl;
+		string MS = s.substr(s.find_first_of('_')+8, s.find_last_of('m')-(s.find_first_of('_')+8)); cout << "MS: " << MS << endl;
 		times2frames.push_back(convertToSeconds(YYMMDD, HHMMSS, MS));
-
+		cout << endl;
 	}
 	cout << "Sync time done." << endl;
+	// Start Frame
 	double max_time = *max_element(times2frames.begin(), times2frames.end());
-
-	// int cam_count(0);
+	int count(0);
+	set<int> skip_cameras;
 	for (auto& t: times2frames) {
 		t = floor( fabs((t - max_time) * 15) + 0.5 );
-		// t = floor( fabs((t - max_time) * record_fps[cam_count++]) + 0.5 );
-		cout << t << " frame will be cut" << endl;
+		if ( t == 0 )
+			skip_cameras.insert(count);
+		cout << setw(20) << sync_names[count++] << ": " << setw(5) <<  t << " start frames will be cut." << endl;
+	}
+	// End Frame
+	for (int i=0; i<svo_lists.size(); i++) {
+		sl::Camera zed; sl::InitParameters init_parameters;
+		init_parameters.input.setFromSVOFile(svo_lists[i].c_str());
+		auto state = zed.open(init_parameters);
+		int end_frame = zed.getSVONumberOfFrames();
+		cout << end_frame << endl;
+		zed.close();
+	}
+	for (int i=0; i<avi_lists.size(); i++) {
+		cout << avi_lists[i] << endl;
+		cv::VideoCapture cap;
+		cap.open(avi_lists[i].c_str());
+		int end_frame = cap.get(cv::CAP_PROP_FRAME_COUNT);
+		cout << end_frame << endl;
+		cap.release();
 	}
 
-		
 	for (int i=0; i<times2frames.size(); i++) {
 		cout << "[Sync " << sync_names[i] << " at " << times2frames[i] << " frames]" << endl;
 		if (i < svo_lists.size()) {
-			string cmd = "ZED_SVO_Editor -cut " + svo_lists[i] + " -s " + to_string((int)times2frames[i]) 
-			// + " -e " + to_string((int)times2frames[i]+500) // frames
-			+ " " + output_path + sync_names[i];
-			system(cmd.c_str());
+			if (skip_cameras.find(i) != skip_cameras.end()) {
+				string cmd = "cp " + svo_lists[i] + " " + output_path + sync_names[i];
+				system(cmd.c_str());
+			} else {
+				string cmd = "ZED_SVO_Editor -cut " + svo_lists[i] + " -s " + to_string((int)times2frames[i]) 
+				// + " -e " + to_string((int)times2frames[i]+500) // frames
+				// + " -e " + to_string((int)times2frames[i]+min_end_frame) // frames
+				+ " " + output_path + sync_names[i];
+				system(cmd.c_str());
+			}
 		}
 		else 
 		{
-			cv::VideoCapture cap(avi_lists[i-svo_lists.size()]);
-			cout << avi_lists[i-svo_lists.size()] << endl;
-			if (!cap.isOpened()) {
-				cerr << "input error" << endl;
-				return 1;
-			}
-			int fc = cap.get(cv::CAP_PROP_FRAME_COUNT);
-			cout << "Total Frame: " << fc << endl;
-			// int fps = record_fps[i];
-			int fps = 15;
-			cv::Size frame_size = cv::Size(cap.get(cv::CAP_PROP_FRAME_WIDTH), cap.get(cv::CAP_PROP_FRAME_HEIGHT));
-			int fourcc = cv::VideoWriter::fourcc('X', 'V', 'I', 'D');
-			cv::VideoWriter out(output_path + sync_names[i], fourcc, fps, frame_size);
-			if (!out.isOpened()) {
-				cerr << "output error" << endl;
-				return 1;
-			}
-
-			int frame_count(0);
-			int cut_count(0);
-			while (true) {
-				cv::Mat frame;
-				cap >> frame;
-				if (frame.empty())
-					break;
-				if (frame_count >= times2frames[i]) {
-					out.write(frame);
-					cut_count++;
+			if (skip_cameras.find(i) != skip_cameras.end()) {
+				string cmd = "cp " + avi_lists[i-svo_lists.size()] + " " + output_path + sync_names[i];
+				system(cmd.c_str());
+			} else {
+				cv::VideoCapture cap(avi_lists[i-svo_lists.size()]);
+				cout << avi_lists[i-svo_lists.size()] << endl;
+				if (!cap.isOpened()) {
+					cerr << "input error" << endl;
+					return 1;
 				}
-				frame_count++;
+				int fc = cap.get(cv::CAP_PROP_FRAME_COUNT);
+				cout << "Total Frame: " << fc << endl;
+				// int fps = record_fps[i];
+				int fps = 15;
+				cv::Size frame_size = cv::Size(cap.get(cv::CAP_PROP_FRAME_WIDTH), cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+				int fourcc = cv::VideoWriter::fourcc('X', 'V', 'I', 'D');
+				cv::VideoWriter out(output_path + sync_names[i], fourcc, fps, frame_size);
+				if (!out.isOpened()) {
+					cerr << "output error" << endl;
+					return 1;
+				}
+
+				int frame_count(0);
+				int cut_count(0);
+				while (true) {
+					cv::Mat frame;
+					cap >> frame;
+					if (frame.empty())
+						break;
+					if (frame_count >= times2frames[i]) {
+						out.write(frame);
+						// print cut and frame counts
+						if (frame_count % 100 == 0)
+							cout << "\rFrame change: " << frame_count << " -> " << cut_count << flush;
+						cut_count++;
+					}
+					frame_count++;
+				}
+				out.release();
+				cout << endl;
+				cout << "Frame change: " << frame_count << " -> " << cut_count << endl;
 			}
-			out.release();
-			cout << "Frame change: " << frame_count << " -> " << cut_count << endl;
 		}
 	}
 	cout << "Synchonization done." << endl;
@@ -493,9 +521,9 @@ void record_CAM(int& id, string& cam_name, bool& exitLoop)
 		cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
 		cap.set(cv::CAP_PROP_FPS, 30);
 	}
-	else if (cam_name == "K4A") { // lead glass and monitor (ArUco) (QHD)
-		cap.set(cv::CAP_PROP_FRAME_WIDTH,  2560);
-		cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1440);
+	else if (cam_name == "K4A") { // lead glass and monitor (ArUco) (UHD)
+		cap.set(cv::CAP_PROP_FRAME_WIDTH,  3840);
+		cap.set(cv::CAP_PROP_FRAME_HEIGHT, 2160);
 		cap.set(cv::CAP_PROP_FPS, 15);
 	}
 	else { // capture board (FHD)

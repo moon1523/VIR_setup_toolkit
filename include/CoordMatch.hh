@@ -16,6 +16,7 @@
 #include <fstream>
 #include <algorithm>
 #include <set>
+#include <sys/stat.h>
 #include "Functions.hh"
 
 using namespace std;

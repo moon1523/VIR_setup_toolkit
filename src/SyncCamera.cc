@@ -126,14 +126,14 @@ int Sync_Webcam(int argc, char** argv) {
 			boardNo = stoi(string(argv[i+1]));
 			i++;
 		}
-		if (string(argv[i]) == "-uhd2160") {
+		if (string(argv[i]) == "--uhd2160") {
 			image_width = 3840;
 			image_height = 2160;
 			scalingFactor = 0.4;
 			webcam = "UHD2160";
 			camParm = "./data/newcam_UHD_intrinsic.yml";
 		}
-		if (string(argv[i]) == "-apc930") {
+		if (string(argv[i]) == "--apc930") {
 			image_width = 2592;
 			image_height = 1944;
 			scalingFactor = 0.6;
@@ -614,9 +614,264 @@ int Batch_Write_Camera_Pose(int argc, char** argv)
 	return EXIT_SUCCESS;
 }
 
-int Measure_Profile(int argc, char** argv)
+int Take_Profile(int argc, char** argv)
 {
-
 	
+
+
+	return EXIT_SUCCESS;
+}
+
+int Take_Monitor_A0(int argc, char** argv)
+{	
+	int nMarkers = 4;
+	float markerLength = 18;
+	cv::Ptr<cv::aruco::DetectorParameters> params = cv::aruco::DetectorParameters::create();
+    cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::generateCustomDictionary(nMarkers,4,2);
+	
+	string camParam;
+    string detParam = "./data/detector_params.yml";
+	
+	string record;
+	cv::VideoCapture cap;
+	if (argc > 2) {
+		record = string(argv[2]);
+		cap.open(record.c_str());
+		int width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+		if 		(width == 3840) camParam = "./data/000457922112_UHD_intrinsic.yml";
+		else if (width == 2560) camParam = "./data/000457922112_QHD_intrinsic.yml";
+		else if (width == 1980) camParam = "./data/000457922112_FHD_intrinsic.yml";
+		else if (width == 1280) camParam = "./data/000457922112_HD_intrinsic.yml";
+	} else {
+		string device_list; int device_idx;
+		FILE* pipe = popen("v4l2-ctl --list-devices", "r");
+		if (pipe == nullptr) {
+			cerr << "Error: Could not execute v4l2-ctl command." << endl;
+			exit(1);
+		}
+
+		char buffer[128];
+		while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+			device_list += buffer;
+		}
+		pclose(pipe);
+
+		stringstream ss(device_list);
+		string line, dump;
+		while (ss >> dump) {
+			if (dump == "Azure") {
+				getline(ss, line);
+				getline(ss, line);
+				stringstream ss2(line);
+				ss2 >> dump;
+				device_idx = stoi(dump.substr(string("/dev/video").size(), dump.size()));
+			}
+		}
+		cap.open(device_idx, cv::CAP_V4L2);
+		cap.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M','J','P','G'));
+		cap.set(cv::CAP_PROP_FRAME_WIDTH,  2560);
+		cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1440);
+		cap.set(cv::CAP_PROP_FPS, 15);
+		cap.set(cv::CAP_PROP_AUTOFOCUS, 0);
+		camParam = "./data/000457922112_QHD_intrinsic.yml";
+	}
+	
+    if (!cap.isOpened()) {
+        cerr << "Error! Unabale to open camera" << endl;
+        exit(1);
+    }
+
+	cv::Mat camMatrix, distCoeffs;
+	cv::FileStorage fs(camParam, cv::FileStorage::READ);
+    if (!fs.isOpened())
+        return EXIT_FAILURE;
+    fs["camera_matrix"] >> camMatrix;
+    fs["distortion_coefficients"] >> distCoeffs;
+    cv::FileStorage fs2(detParam, cv::FileStorage::READ);
+    if (!fs2.isOpened())
+        return EXIT_FAILURE;
+    fs2["adaptiveThreshWinSizeMin"] >> params->adaptiveThreshWinSizeMin;
+    fs2["adaptiveThreshWinSizeMax"] >> params->adaptiveThreshWinSizeMax;
+    fs2["adaptiveThreshWinSizeStep"] >> params->adaptiveThreshWinSizeStep;
+    fs2["adaptiveThreshConstant"] >> params->adaptiveThreshConstant;
+    fs2["minMarkerPerimeterRate"] >> params->minMarkerPerimeterRate;
+    fs2["maxMarkerPerimeterRate"] >> params->maxMarkerPerimeterRate;
+    fs2["polygonalApproxAccuracyRate"] >> params->polygonalApproxAccuracyRate;
+    fs2["minCornerDistanceRate"] >> params->minCornerDistanceRate;
+    fs2["minDistanceToBorder"] >> params->minDistanceToBorder;
+    fs2["minMarkerDistanceRate"] >> params->minMarkerDistanceRate;
+    fs2["cornerRefinementMethod"] >> params->cornerRefinementMethod;
+    fs2["cornerRefinementWinSize"] >> params->cornerRefinementWinSize;
+    fs2["cornerRefinementMaxIterations"] >> params->cornerRefinementMaxIterations;
+    fs2["cornerRefinementMinAccuracy"] >> params->cornerRefinementMinAccuracy;
+    fs2["markerBorderBits"] >> params->markerBorderBits;
+    fs2["perspectiveRemovePixelPerCell"] >> params->perspectiveRemovePixelPerCell;
+    fs2["perspectiveRemoveIgnoredMarginPerCell"] >> params->perspectiveRemoveIgnoredMarginPerCell;
+    fs2["maxErroneousBitsInBorderRate"] >> params->maxErroneousBitsInBorderRate;
+    fs2["minOtsuStdDev"] >> params->minOtsuStdDev;
+    fs2["errorCorrectionRate"] >> params->errorCorrectionRate;
+
+	// Information
+	std::cout << "===================================" << std::endl;
+	cout << "Marker #: " << nMarkers << endl;
+	cout << "Marker length (cm): " << markerLength << endl;
+	cout << "Resolution: " << cap.get(cv::CAP_PROP_FRAME_WIDTH) << "x" << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << endl;
+	cout << "camParam: " << camParam << endl;
+	cout << "detParam: " << detParam << endl;
+	cout << "camMatrix: " << endl;
+	cout << camMatrix << endl;
+	cout << "distCoeffs: " << endl;
+	cout << distCoeffs << endl;
+	std::cout << "===================================" << std::endl;
+
+	cv::Mat image;
+	cv::Mat display;
+	map<int, vector<cv::Point2f>> corner_cumul;
+	int cumulCount;
+	map<int, cv::Vec3f> rvec0_cumuls, rveci_cumuls;
+    map<int, cv::Vec3f> tvec0_cumuls, tveci_cumuls;
+    map<int, Eigen::Quaternionf> q0_cumuls, qi_cumuls;
+    map<int, Eigen::Vector3f> t0_cumuls, ti_cumuls;
+    map<int, Eigen::Affine3f> a0_cumuls, ai_cumuls;
+
+	while (cap.grab()) 
+	{
+		cap.retrieve(image);
+		image.copyTo(display);
+
+		// detect markers
+		vector<int> ids;
+		vector<vector<cv::Point2f>> corners, rejected, cornersWhole;
+		cv::aruco::detectMarkers(image, dictionary, corners, ids, params, rejected);
+
+		// compare with the previous result
+		if (ids.size() == 4)
+		{
+			cv::aruco::drawDetectedMarkers(display, corners, ids);
+
+			// check the state
+			bool isNewPose(false);
+			for (int i=0; i<ids.size(); i++)
+			{
+				vector<cv::Point2f> points;
+				for (auto p: corners[i])
+					points.push_back(cv::Point2f(p.x, p.y));
+				cornersWhole.push_back(points);
+				if (isNewPose)
+					continue;
+				if (corner_cumul.find(ids[i]) != corner_cumul.end())
+				{
+					cv::Point2f oldCen(0,0), newCen(0,0);
+					for (int n=0; n<4; n++)
+					{
+						newCen += points[n];
+						oldCen += corner_cumul[ids[i]][n];
+					}
+					cv::Point2f vec = oldCen - newCen;
+					if (vec.dot(vec) > 40)
+					{
+						corner_cumul.clear();
+						isNewPose = true;
+						cumulCount = 0;
+					}
+				}
+			}
+			for (int i=0; i<ids.size(); i++)
+            	corner_cumul[ids[i]] = cornersWhole[i];
+
+			vector<cv::Vec3d> rvecs, tvecs; // must double
+			cv::aruco::estimatePoseSingleMarkers(corners, markerLength, camMatrix, distCoeffs, rvecs, tvecs);
+			
+			vector<tuple<int, cv::Vec3d, cv::Vec3d>> poses;
+			for (int i=0; i<ids.size(); i++)
+				poses.push_back(make_tuple(ids[i], rvecs[i], tvecs[i]));
+			// sort by id
+			sort(poses.begin(), poses.end(), [](const tuple<int, cv::Vec3f, cv::Vec3f> &a, const tuple<int, cv::Vec3f, cv::Vec3f> &b) {
+				return get<0>(a) < get<0>(b);
+			});
+			cumulCount++;
+
+			map<int, cv::Vec3f> _tvecs;
+			for (auto itr: poses) {
+				int i = get<0>(itr);
+				cv::Vec3f rr = get<1>(itr);
+				cv::Vec3f tt = get<2>(itr);
+
+				// rvec
+				float angle = norm(rr);
+				Eigen::Vector3f axis( rr(0) / angle, rr(1) / angle, rr(2) / angle );
+				Eigen::Quaternionf q(Eigen::AngleAxisf(angle, axis));
+				q.normalize();
+
+				if (cumulCount > 1) {
+					q0_cumuls[i] = q0_cumuls[i].slerp(1.f / (cumulCount + 1.f), q);
+				}
+				else {
+					q0_cumuls[i] = q;
+				}
+
+				Eigen::AngleAxisf avg(q0_cumuls[i]);
+				cv::Vec3f rvec;
+				cv::eigen2cv(avg.axis(), rvec);
+				rvec *= avg.angle();
+				rvec0_cumuls[i] = rvec;
+
+				// tvec
+				_tvecs[i] += get<2>(poses[i]);
+				if (cumulCount > 1) {
+					_tvecs[i] += tvec0_cumuls[i] * (cumulCount - 1);
+					_tvecs[i] /= (float)cumulCount;
+				}
+				tvec0_cumuls[i] = _tvecs[i];
+				cv::cv2eigen(tvec0_cumuls[i], t0_cumuls[i]);
+
+				cv::aruco::drawAxis(display, camMatrix, distCoeffs, rvec0_cumuls[i], tvec0_cumuls[i], markerLength * 0.5f);
+
+				a0_cumuls[i].linear() = q0_cumuls[i].normalized().toRotationMatrix();
+				a0_cumuls[i].translation() = t0_cumuls[i] * 0.01;
+			}
+
+			cv::putText(display, "Set initial pose ...", cv::Point(10, 40), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255.f, 0.f, 0.f), 2.0);
+			cv::putText(display, "cummulated data #: " + to_string(cumulCount), cv::Point(10, 80), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255.f, 0.f, 0.f), 2.0);
+    	    cv::putText(display, "Press 's' to finish initial setting", cv::Point(10, 120), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255.f, 0.f, 0.f), 2.0);
+
+			if (cumulCount > 100) {
+				char key = cv::waitKey(0);
+				if (key == 's') {
+
+					corner_cumul.clear();
+					cumulCount = 0;
+					cout << "'monitor_a0.txt' is saved" << endl;
+					ofstream ofs("./sync/monitor_a0.txt");
+					for (auto itr: a0_cumuls) {
+						int i = itr.first;
+						Eigen::Quaternionf q = Eigen::Quaternionf(itr.second.linear());
+						Eigen::Vector3f t = itr.second.translation();
+						ofs << i << " " << t.transpose() << " " << q.coeffs().transpose() << endl; 
+					} ofs.close();
+					break;
+				}
+				else {
+					corner_cumul.clear();
+					cumulCount = 0;
+				}
+			}
+		}
+		else
+		{
+			corner_cumul.clear();
+        	cumulCount = 0;
+		}
+
+		int width  = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+		int height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
+		cv::resize(display, display, cv::Size(int(width*0.5),int(height*0.5)));
+		cv::imshow("Render", display);
+		char key = (char)cv::waitKey(1);
+		if (key == 'q')
+			 break;
+		
+	}
+
 	return EXIT_SUCCESS;
 }

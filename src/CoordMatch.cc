@@ -10,6 +10,11 @@ CoordMatch::CoordMatch(int type, int _boardNo)
     :boardType(type), getPose(false), sf(1), isStack(false), boardNo(_boardNo), markerNo(17), isFix(true),
 	detectingNo(5), cumulatingNo(10), reprojCount(21)
 {
+	struct stat st;
+	string sync_path = "./sync";
+	if (stat(sync_path.c_str(), &st) != 0)	mkdir(sync_path.c_str(), 0777);
+	else	cout << sync_path + " folder already exists" << endl;
+
 	Ptr<cv::aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::PREDEFINED_DICTIONARY_NAME(cv::aruco::DICT_4X4_1000));
 	cv::aruco::Dictionary _dictionary = *dictionary;
 

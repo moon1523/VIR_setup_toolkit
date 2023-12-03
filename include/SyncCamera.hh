@@ -28,8 +28,8 @@ int Sync_Kinect(int argc, char** argv);
 int Sync_Webcam(int argc, char** argv);
 int Sync_ZED2(int argc, char** argv);
 int Batch_Write_Camera_Pose(int argc, char** argv);
-int Measure_Profile(int argc, char** argv);
-
+int Take_Profile(int argc, char** argv);
+int Take_Monitor_A0(int argc, char** argv);
 
 
 #endif
