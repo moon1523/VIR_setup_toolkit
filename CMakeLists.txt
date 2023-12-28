@@ -17,6 +17,10 @@ find_package(Eigen3 REQUIRED)
 find_package(ZED 3 REQUIRED)
 find_package(CUDA ${ZED_CUDA_VERSION} REQUIRED)
 find_package(k4a QUIET)
+find_package(GLUT REQUIRED)
+find_package(GLEW REQUIRED)
+SET(OpenGL_GL_PREFERENCE GLVND)
+find_package(OpenGL REQUIRED)
 
 # openMP
 FIND_PACKAGE(OpenMP)
@@ -31,11 +35,15 @@ endif()
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${OpenCV_INCLUDE_DIRS})
+include_directories(${GLEW_INCLUDE_DIRS})
+include_directories(${GLUT_INCLUDE_DIR})
 include_directories(${ZED_INCLUDE_DIRS})
 include_directories(${CUDA_INCLUDE_DIRS})
 
 # Link libraries
 link_directories(${OpenCV_LIBRARY_DIRS})
+link_directories(${GLEW_LIBRARY_DIRS})
+link_directories(${GLUT_LIBRARY_DIRS})
 link_directories(${ZED_LIBRARY_DIR})
 link_directories(${CUDA_LIBRARY_DIRS})
 
@@ -58,16 +66,22 @@ if (k4a_FOUND)
     message("k4a found")
     target_compile_definitions(${PROJECT_NAME} PRIVATE K4A_FOUND)
     target_link_libraries( ${PROJECT_NAME} 
-        ${OpenCV_LIBS} 
+        ${OpenCV_LIBS}
+        ${GLEW_LIBRARIES} 
         k4a::k4a
         Eigen3::Eigen
         ${ZED_LIBS}
+        ${OPENGL_LIBRARIES}
+        ${GLUT_LIBRARIES}
     )
 else()
     message("k4a not found")
     target_link_libraries( ${PROJECT_NAME} 
         ${OpenCV_LIBS} 
+        ${GLEW_LIBRARIES} 
         Eigen3::Eigen
         ${ZED_LIBS}
+        ${OPENGL_LIBRARIES}
+        ${GLUT_LIBRARIES}
     )
 endif()
