@@ -2,6 +2,7 @@
 #include "RecordVideo.hh"
 #include "ViewCoords.hh"
 #include "BoardCalib.hh"
+#include "GetSkeleton.hh"
 
 void PrintLogo()
 {
@@ -45,7 +46,7 @@ int main(int argc, char** argv)
 {	
     PrintLogo();
     PrintUsage();
-	
+
     if (argc < 2) {
         return EXIT_SUCCESS;
     }
@@ -74,13 +75,16 @@ int main(int argc, char** argv)
         Batch_Write_Camera_Pose(argc, argv);
     } else if (option == "--calib") {
         Calibrate_with_ChArUco(argc, argv);
-    } else if (option == "--profile") {
-        Take_Profile(argc, argv);
+    //} else if (option == "--profile") {
+    //    Take_Profile(argc, argv);
+    //} 
     } else if (option == "--monitor") {
-        Take_Monitor_A0(argc, argv);    } else {
+        Take_Monitor_A0(argc, argv);    
+    } else if (option == "--profile") {
+        GetSkeleton(argc, argv);        }else {
         std::cout << "Invalid option: " << option << std::endl;
         return EXIT_FAILURE;
-    }
+    } 
 
     std::cout << "EXIT_SUCCESS" << std::endl;
 	return EXIT_SUCCESS;
