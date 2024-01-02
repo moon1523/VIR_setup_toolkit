@@ -58,8 +58,6 @@ int Synchronize_Recording(int argc, char** argv)
 	vector<string> svo_lists = findFileList(input_path, "svo");
 	vector<string> avi_lists = findFileList(input_path, "avi");
 
-	
-
 	// Sync Time
 	struct stat st;
 	if (stat(output_path.c_str(), &st) != 0) {

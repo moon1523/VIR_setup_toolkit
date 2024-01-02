@@ -835,7 +835,7 @@ int Take_Monitor_A0(int argc, char** argv)
 			cv::putText(display, "cummulated data #: " + to_string(cumulCount), cv::Point(10, 80), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255.f, 0.f, 0.f), 2.0);
     	    cv::putText(display, "Press 's' to finish initial setting", cv::Point(10, 120), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255.f, 0.f, 0.f), 2.0);
 
-			if (cumulCount > 100) {
+			if (cumulCount > 50) {
 				char key = cv::waitKey(0);
 				if (key == 's') {
 

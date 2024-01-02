@@ -3,6 +3,7 @@
 #include "ViewCoords.hh"
 #include "BoardCalib.hh"
 #include "GetSkeleton.hh"
+#include "FaceModelGen.hh"
 
 void PrintLogo()
 {
@@ -33,6 +34,9 @@ void PrintUsage()
     std::cout << "  --view-realtime" << std::endl;
     std::cout << "  --view-record [rsync_input_folder_name]" << std::endl;
     std::cout << "  --sync-record [input_folder_name]" << std::endl;
+    std::cout << "[Face detection model option]" << std::endl;
+    std::cout << "  --model" << std::endl;
+    std::cout << "  --test-model" << std::endl;
     std::cout << "[Extra option]" << std::endl;
     std::cout << "  --view-coords (ply_path, default: ./sync)" << std::endl;
     std::cout << "  --write (isocenter_file, default: no calibration)" << std::endl;
@@ -75,13 +79,15 @@ int main(int argc, char** argv)
         Batch_Write_Camera_Pose(argc, argv);
     } else if (option == "--calib") {
         Calibrate_with_ChArUco(argc, argv);
-    //} else if (option == "--profile") {
-    //    Take_Profile(argc, argv);
-    //} 
+    } else if (option == "--profile") {
+       GetSkeleton(argc, argv);
     } else if (option == "--monitor") {
         Take_Monitor_A0(argc, argv);    
-    } else if (option == "--profile") {
-        GetSkeleton(argc, argv);        }else {
+    } else if (option == "--model") {
+        Generate_FaceModel(argc, argv);
+    } else if (option == "--test-model") {
+        Test_FaceModel(argc, argv);
+    } else {
         std::cout << "Invalid option: " << option << std::endl;
         return EXIT_FAILURE;
     } 
